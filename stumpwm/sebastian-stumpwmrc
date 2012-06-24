@@ -1,0 +1,146 @@
+;; -*- lisp -*-
+
+;;; Some useful sources
+;; http://paste.lisp.org/display/75796
+;; http://www.xsteve.at/prg/stumpwm/
+;; http://stumpwm.svkt.org/cgi-bin/wiki.pl/batman.stumpwmrc
+
+
+(in-package :stumpwm)
+
+;; ;; Set the mouse policy to focus follows mouse;
+(setf *mouse-focus-policy* :sloppy) ;; :click, :ignore, :sloppy
+
+;; theming
+(set-font "-*-terminus-medium-r-normal-*-12-*-*-*-*-*-iso8859-1")
+(set-focus-color "#8ae834")
+(set-unfocus-color "#729fcf")
+
+
+;; ;;; Window Appearance
+(setf *normal-border-width* 1
+      *maxsize-border-width* 1
+      *transient-border-width* 1
+      *window-border-style* :thin)     ; :thick :thin :tight :none
+
+
+(set-prefix-key (kbd "s-t"))
+
+
+(define-key *top-map* (kbd "s-b") "windowlist") ;
+
+(define-key *top-map* (kbd "C-X") "exec xlock")
+(define-key *top-map* (kbd "s-e") "exec")
+
+(define-key *top-map* (kbd "s--") "vsplit")
+(define-key *top-map* (kbd "s-\\") "hsplit") 
+(define-key *top-map* (kbd "s-C-BackSpace") "remove-split")
+(define-key *top-map* (kbd "s-BackSpace") "only")
+
+(define-key *top-map* (kbd "s-Return") "exec x-terminal-emulator") 
+
+(define-key *top-map* (kbd "s-C-Right") "next-in-frame")
+(define-key *top-map* (kbd "s-C-Left") "prev-in-frame") ;
+
+
+(define-key *top-map* (kbd "s-Right") "move-focus right") ;
+(define-key *top-map* (kbd "s-Left") "move-focus left") ;
+(define-key *top-map* (kbd "s-Up") "move-focus up") ;
+(define-key *top-map* (kbd "s-Down") "move-focus down") ;
+
+
+(define-key *top-map* (kbd "s-S-Right") "move-window right") ;
+(define-key *top-map* (kbd "s-S-Left") "move-window left") ;
+(define-key *top-map* (kbd "s-S-Up") "move-window up") ;
+(define-key *top-map* (kbd "s-S-Down") "move-window down") ;
+
+
+(define-key *top-map* (kbd "s-S-C-Right") "gnext")
+(define-key *top-map* (kbd "s-S-C-Left") "gprev") ;
+;;
+;; (define-key *root-map* (kbd "Right") "next")
+;; (define-key *root-map* (kbd "Left") "prev")
+
+(define-key *top-map* (kbd "s-]") "gnext") ;
+(define-key *top-map* (kbd "s-[") "gprev") ;
+
+(define-key *top-map* (kbd "M-Escape") "delete-window")
+
+(define-key *top-map* (kbd "s-x") "colon")
+(define-key *top-map* (kbd "s-k") "describe-key")
+(define-key *top-map* (kbd "s-f") "describe-function")
+(define-key *top-map* (kbd "s-c") "describe-command")
+(define-key *top-map* (kbd "s-v") "describe-variable")
+
+
+(define-key *top-map* (kbd "s-o") "fselect")
+
+
+(defun get-ssh-hosts ()
+  "Parse ~/.ssh/config and return a sorted list of all hosts"
+  (let ((in (open "~/.ssh/config" :if-does-not-exist nil))
+	ret)
+    (when in
+      (loop for line = (read-line in nil)
+	    while line do (when (and
+				 (> (length line) 4)
+				 (string= "Host " (subseq line 0 5)))
+			    (let ((host (string-trim " " (subseq line 5))))
+			      
+			      (unless (string= "*" host)
+				(setf ret (append  (list host) ret ))))))
+      (close in)
+      (sort ret 'string<))))
+
+
+(defun select-host-from-menu ()
+  (let* ((host (completing-read (current-screen)
+				"ssh to "
+				(get-ssh-hosts)
+				:require-match t))
+	 (cmd (concatenate 'string "exec x-terminal-emulator -title "
+			   "ssh:" host
+			   " -e ssh -t " host)))
+    (when (and host
+	       (length host))
+      (run-commands cmd))))
+
+
+(defcommand ssh-host (&optional host) ()
+  (select-host-from-menu))
+
+
+(define-key *top-map* (kbd "s-s") "ssh-host")
+(define-key *top-map* (kbd "s-C-R") "loadrc")
+
+(defun show-window-info (a b)
+  (let ((window-string "No window"))
+    (when (current-window)
+      (setf window-string (window-name (current-window))))
+    (echo-string (current-screen) window-string)))
+
+;; (setf *focus-window-hook* nil)
+
+(add-hook *focus-window-hook*  'show-window-info)
+(add-hook *focus-frame-hook*  'show-window-info)
+
+(define-key *top-map* (kbd "s-m") "fullscreen")
+(setf *input-window-gravity* :center)
+
+
+(defun echo-urgent-window (target)
+  (message-no-timeout "~a has an message for you." (window-title target)))
+(add-hook *urgent-window-hook* 'echo-urgent-window)
+
+
+;; display the key sequence in progress
+(defun key-press-hook (key key-seq cmd)
+  (declare (ignore key))
+  (unless (eq *top-map* *resize-map*)
+    (let ((*message-window-gravity* :bottom-right))
+      (message "Key sequence: ~a" (print-key-seq (reverse key-seq))))
+    (when (stringp cmd)
+      ;; give 'em time to read it
+      (sleep 0.5))))
+(add-hook *key-press-hook* 'key-press-hook)
+

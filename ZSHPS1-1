@@ -1,0 +1,4 @@
+PS1="%{${fg_bold[blue]}%}[%{${fg_bold[default]}%}%D%{${fg_bold[blue]}%}]-[%{${fg_bold[default]}%}%n%{${fg_bold[blue]}%}]-[${fg_bold[default]}%m%{${fg_bold[blue]}%}]-[\
+%{${fg_bold[default]}%}${$(tty)#/dev/##}%}%{${fg_bold[blue]}%}]-[\
+%{${fg_bold[default]}%}%~%{${fg_bold[blue]}%}]
+[%{${fg_bold[default]}%}%*%{${fg_bold[blue]}%}]-%#%{${fg_bold[default]}%} "

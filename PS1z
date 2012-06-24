@@ -1,0 +1,11 @@
+PS1='\[\e[1;35m\]\u\[\e[m\] \[\e[1;34m\]\W\[\e[m\] \[\e[1;31m\]> \[\e[0m\]'
+PS2='>'
+echo -e "                Welcome to ${bold}Arch Linux${boldoff}"
+sleep 1
+clear
+
+
+ 
+
+
+

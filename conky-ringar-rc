@@ -1,0 +1,89 @@
+# set to yes if you want Conky to be forked in the background
+background yes
+ 
+# Create own window instead of using desktop (required in nautilus)
+ own_window yes
+ own_window_class Conky
+ own_window_type desktop
+ own_window_hints undecorated,below,sticky,skip_taskbar,skip_pager
+ own_window_colour brown
+ own_window_transparent yes
+ own_window_argb_value 0
+ own_window_argb_visual yes
+  
+# fiddle with window
+	use_spacer none
+	use_xft yes
+	xftfont Bitstream Vera Sans Mono:size=8
+	xftalpha 0.9
+	 
+# Update interval in seconds
+	 update_interval 1.0
+	  
+# Minimum size of text area
+		minimum_size 290 900
+		 
+# Draw shades?
+		 draw_shades yes
+		  
+# Text stuff
+			draw_outline no # amplifies text if yes
+			draw_borders no
+			uppercase no # set to yes if you want all text to be in uppercase
+			font Bitstream Vera Sans Mono:size=11
+			 
+# Stippled borders?
+#stippled_borders 3
+			  
+# border margins
+#border_margin 0
+				 
+# border width
+#border_width 0
+				  
+# Default colors and also border colors, grey90 == #e5e5e5
+					default_color #348a8f
+					 
+					  
+# Text alignment, other possible values are commented
+						alignment top_left
+#alignment top_right
+#alignment bottom_left
+#alignment bottom_right
+						 
+# Gap between borders of screen and text
+						 gap_x 1600
+						 gap_y 30
+						  
+# Use double buffering (reduces flicker, may not work for everyone)
+							double_buffer yes
+							 
+# stuff after 'TEXT' will be formatted on screen
+							  
+								lua_load ~/scripts/conky_widgets.lua
+								lua_draw_hook_pre widgets
+								 
+								 TEXT
+								 ${voffset 10}${offset 40}${color #7365BC}|${color #348a8f}$nodename:  ${color #a49a30}$kernel
+								 ${offset 40}${color #348a8f}${color #7365BC}|${color #348a8f}Uptime: ${color #a49a30}$uptime
+								 ${voffset 54}${offset 99}${color #348a8f}${font ubuntu:size=16}CPU${font}
+								 ${voffset -2}${offset 99}${font Bitstream Vera Sans Mono:size=9}${freq}MHz ${execi 15 sensors | grep -A 1 'temp1' | head --lines 1 | cut -c 16-22}${font}
+								 ${voffset 4}${offset 99}${font Bitstream Vera Sans Mono:size=8}${color #7365BC}7${color #942a36}6${color #b55511}5${color #a49a30}4${color #32a445}3${color #348a8f}2${color #34678F}1${color #7365BC}0${font}
+								 ${voffset 79}${offset 113}${font Bitstream Vera Sans Mono:size=9}${color #7365BC}$memperc% of $memmax
+								 ${voffset 6}${offset 161}${color #348a8f}${font ubuntu:size=14}RAM${font}
+								 ${voffset 22}${offset 92}${font Bitstream Vera Sans Mono:size=6}${color #32a445}root
+								 ${offset 92}${color #a49a30}Speedy
+								 ${offset 92}${color #7365BC}/home${font}
+								 ${voffset 17}${offset 70}${color #348a8f}${font ubuntu:size=14}HDD${font}
+								 ${voffset 74}${offset 92}${font Bitstream Vera Sans Mono:size=9}${color #7365BC}${execi 60 ~/scripts/baddery.sh}
+								 ${voffset 2}${offset 151}${color #348a8f}${font ubuntu:size=14}Battery${font}
+								 ${voffset 55}${offset 36}${color #7365BC}${font ubuntu:size=14}Network
+								 ${voffset -12}${offset 36}${font Bitstream Vera Sans Mono:size=8}${execi 600 /home/egon/scripts/getip.sh}${font}
+								 ${voffset 0}${offset 40}${font Bitstream Vera Sans Mono:size=8}${color #348a8f}eth0            ${color #a49a30}wlan0${font}
+								 ${voffset -11}${offset 40}${font Bitstream Vera Sans Mono:size=7}${color #348a8f}up    down      ${color #a49a30}up    down${font}
+								 ${voffset 152}${offset 38}${font Bitstream Vera Sans Mono:size=7}${color #348a8f}${upspeedf eth0}k
+								 ${voffset -13}${offset 82}${color #348a8f}${downspeedf eth0}k
+								 ${voffset -13}${offset 154}${color #a49a30}${upspeedf wlan0}k
+								 ${voffset -13}${offset 198}${downspeedf wlan0}k${font}
+								 ${color #a49a30}${offset 110}TODO:
+								 ${font Bitstream Vera Sans Mono:size=8}${execpi 60 todo.sh -d ~/.todo/config-conky ls | head --lines=-2 | fold -s -w47}${font}

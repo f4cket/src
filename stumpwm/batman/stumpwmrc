@@ -1,0 +1,371 @@
+(in-package :stumpwm)
+    
+    (setf *default-package* :stumpwm)
+    
+    (load "stumpwm/contrib/battery.lisp")
+    (load "stumpwm/contrib/aumix.lisp")
+    
+    (defparameter terminal "urxvt")
+    
+    (set-font "-*-courier-medium-r-normal--24-*-*-*-*-*-*-*")
+    
+    (set-prefix-key       (kbd "C-t"))
+    (set-focus-color      "DarkRed")
+    (set-unfocus-color    "black")
+    (set-win-bg-color     "black")
+    (set-fg-color         "lightgray")
+    (set-bg-color         "black")
+    (set-normal-gravity   :center)
+    (setq *shell-program* (stumpwm::getenv "SHELL"))
+    (defvar *regular-map* "aoeuid")
+    (defvar *shifted-map* "AOEUID")
+    (defvar *alphabet*    "abcdefghijklmnopqrstuvwxyz")
+    (defvar *clipboard*   (make-hash-table :test 'equalp))
+    
+    ;; Options
+    (setf
+      *normal-border-width*             1
+      *window-border-style*             :thick
+      *startup-message*                 nil
+      *frame-number-map*                "aoeuidhtnspyfgcrlqjkxbmwvz"
+      *window-number-map*               "aoeuidhtns"
+      *group-number-map*                "aoeuidhtns"
+      *mouse-focus-policy*              :click
+      *message-window-gravity*          :center
+      *input-window-gravity*            :center
+      *run-or-raise-all-groups*         T
+      *input-history-ignore-duplicates* T
+      *mode-line-background-color*      "black"
+      *mode-line-foreground-color*      "white"
+      *mode-line-border-color*          "DarkRed"
+      *mode-line-timeout*               1
+      *mode-line-position*              :top
+      *time-format-string-default*      "%a %m/%d/%Y %I:%M%p"
+      *time-modeline-string*            "%a %m/%d/%Y %I:%M%p"
+      *group-format*                    "%n%s%t"
+      *window-format*                   "«%n%s%m%10c»")
+    
+    (setf *screen-mode-line-format*
+          (list "[^B%n^b] %W ^> [ VOL: "
+                '(:eval (stumpwm:run-shell-command "aumix -q | head -n 1 | sed 's/vol \\([0-9]\\+\\),.\\+/\\1/'|tr -d '[:cntrl:]'" t))
+                " | %b ] ^3*%d"))
+    
+    ; NOTE this must be after *screen-mode-line-format*
+    (enable-mode-line (current-screen) (current-head) T)
+    
+    ;; Hooks
+    (setf *command-mode-start-hook*
+          (list (lambda () (grab-pointer (current-screen)))))
+    
+    (setf *command-mode-end-hook*
+          (list (lambda () (ungrab-pointer))))
+    
+    (setf *urgent-window-hook*
+          (list (lambda (target)
+                  (run-shell-command
+                    (format nil "notify-send 'Alert' '«~a ~a» on ~a'"
+                            (window-number target)
+                            (window-title target)
+                            (group-name (window-group target)))))))
+    
+    ;; TODO is there any useful thing to have on 2/3?
+    ;; TODO be really nice to have click on window name to focus it
+    (setf *mode-line-click-hook*
+          (list #'(lambda (mode-line button x y)
+                    (declare (ignore mode-line x y))
+                    (cond ((eq button 5) (run-shell-command "aumix -v -1"))
+                          ((eq button 4) (run-shell-command "aumix -v +1"))
+                          ((eq button 1) (run-shell-command "/home/batman/bin/dzen/dzen-cal.sh"))))))
+    
+    ;; Keyboard on topmap to show the key pressed
+    (defun key-press-hook (key key-seq cmd)
+      (declare (ignore key))
+      (unless (stringp cmd)
+        (message "~A" (print-key-seq (reverse key-seq)))))
+    
+    (defmacro replace-hook (hook fn)
+      `(remove-hook ,hook ,fn)
+      `(add-hook ,hook ,fn))
+    (replace-hook *key-press-hook* 'key-press-hook)
+    
+    ;; Groups
+    (run-commands
+      "grename main"
+      "gnewbg www"
+      "gnewbg misc"
+      "gnewbg more"
+      "gnewbg other"
+      "gnewbg scratchpad")
+    
+    ;; Commands
+    ;; TODO google, imdb, cpan, vim searches
+    ;; See http://www.mygooglest.com/fni/stumpwm.html
+    (defun add-move-keys (m key-format command-normal command-shift)
+      (dotimes (i (length *regular-map*))
+        (define-key m
+                    (kbd (format nil key-format (char *regular-map* i)))
+                    (format nil command-normal (elt *group-number-map* i)))
+        (define-key m
+                    (kbd (format nil key-format (char *shifted-map* i)))
+                    (format nil command-shift (elt *group-number-map* i)))))
+    
+    (defun add-clipboard-keys (m command)
+      (loop for x across *alphabet* do
+            (define-key m
+                        (kbd (format nil "~A" x))
+                        (format nil "~A ~A" command x))))
+    
+    (defcommand dmenu () ()
+                "Runs the dmenu program"
+                (run-shell-command "dmenu_run -i -nb '#000000' -nf '#777777' -sb '#770000' -sf '#ffffff' -fn '-*-courier-medium-r-normal-*-25-*-*-*-*-*-*-*' -p '> '"))
+    
+    (defcommand man (man) ((:string "Man: "))
+                "Lookup a command in man"
+                (run-shell-command (format nil "~A -e sh -c 'man ~A'" terminal man)))
+    
+    (defcommand exec-in-terminal (program) ((:rest "urxvt -e: "))
+                "Run in terminal"
+                (run-shell-command (format nil "urxvt -e ~A" program)))
+    
+    (defcommand scratchpad () ()
+                "Toggle the scratchpad"
+                (run-commands (if (equal "scratchpad" (group-name (current-group)))
+                                "gother"
+                                "gselect scratchpad")))
+    
+    (defcommand clipboard-yank (key) ((:string "Key:"))
+                "Yanks the current x-selection into the clipboard specified"
+                (setf (gethash key *clipboard*) (stumpwm:get-x-selection))
+                (run-commands "abort"))
+    
+    (defcommand clipboard-put (key) ((:string "Key:"))
+                "Pastes the value in the clipboard specified"
+                (window-send-string (values (gethash key *clipboard*)))
+                (run-commands "abort"))
+    
+    (defcommand battery () ()
+                "Shows the current battery status"
+                (message (fmt-bat-charge 0)))
+    
+    (defcommand sshot (filename) ((:string "File: "))
+                "Take a screenshot"
+                (run-shell-command (format nil "import ~A" filename)))
+    
+    ;; Key bindings
+    ;; TOP
+    (add-move-keys *top-map* "s-~A" "gselect ~A" "gmove ~A")
+    (define-key *top-map* (kbd "XF86AudioRaiseVolume") "exec aumix -v +1")
+    (define-key *top-map* (kbd "XF86AudioLowerVolume") "exec aumix -v -1")
+    (define-key *top-map* (kbd "s-Prior") "exec aumix -v +1")
+    (define-key *top-map* (kbd "s-Next") "exec aumix -v -1")
+    (define-key *top-map* (kbd "XF86AudioMute") "exec aumute")
+    (define-key *top-map* (kbd "s-Scroll_Lock") "exec xlock")
+    (define-key *top-map* (kbd "M-F4") "delete")
+    (define-key *top-map* (kbd "s-ESC") "scratchpad")
+    (define-key *top-map* (kbd "Print") "sshot screen.jpg")
+    (define-key *top-map* (kbd "C-s-End") "exec sleep 1 && xset dpms force off")
+    (define-key *top-map* (kbd "s-Home") "exec setxkbmap us -option")
+    (define-key *top-map* (kbd "s-End") "exec setxkbmap dvorak -option caps:swapescape")
+    (define-key *top-map* (kbd "C-t") "command-mode")
+    
+    ;; Subgroup HELP
+    (setf *help-map*
+          (let ((m (make-sparse-keymap)))
+            (define-key m (kbd "m") "man")
+            (define-key m (kbd "v") "describe-variable")
+            (define-key m (kbd "c") "describe-command")
+            (define-key m (kbd "f") "describe-function")
+            (define-key m (kbd "k") "describe-key")
+            (define-key m (kbd "w") "where-is")
+            (define-key m (kbd "Escape") '*root-map*)
+            m))
+    
+    ;; Subgroup EXEC
+    (defvar *exec-map*
+      (let ((m (make-sparse-keymap)))
+        (define-key m (kbd "v") "exec gvim")
+        (define-key m (kbd "f") "exec firefox -ProfileManager -no-remote")
+        (define-key m (kbd "F") "exec chromium")
+        (define-key m (kbd "r") "dmenu")
+        (define-key m (kbd "c") "exec wxmaxima")
+        (define-key m (kbd "e") (format nil "exec ~a -e mc" terminal))
+        (define-key m (kbd "l") "exec xlock")
+        (define-key m (kbd "Print") "exec xlock")
+        (define-key m (kbd "Home") "exec setxkbmap us -option")
+        (define-key m (kbd "End") "exec setxkbmap dvorak -option caps:swapescape")
+        (define-key m (kbd "Escape") '*root-map*)
+        m))
+    
+    ;; Subgroup GROUP
+    (setf *groups-map*
+          (let ((m (make-sparse-keymap)))
+            (define-key m (kbd "'") "grouplist")
+            (define-key m (kbd "\"") "gselect")
+            (define-key m (kbd "g") "gother")
+            (define-key m (kbd "C-g") "gother")
+            (define-key m (kbd "G") "vgroups")
+            (define-key m (kbd "c") "gnew")
+            (define-key m (kbd "C") "gnew-float")
+            (define-key m (kbd "n") "gnext")
+            (define-key m (kbd "p") "gprev")
+            (define-key m (kbd "C-n") "gnext")
+            (define-key m (kbd "C-p") "gprev")
+            (define-key m (kbd "SPC") "gnext")
+            (define-key m (kbd "C-SPC") "gprev")
+            (define-key m (kbd "C-N") "gnext-with-window")
+            (define-key m (kbd "C-P") "gprev-with-window")
+            (define-key m (kbd "m") "gmove")
+            (define-key m (kbd "M") "gmove-marked")
+            (define-key m (kbd "k") "gkill")
+            (define-key m (kbd "R") "grename")
+            (define-key m (kbd "Escape") '*root-map*)
+            (add-move-keys m "~A" "gselect ~A" "gmove ~A")
+            m))
+    
+    ;; Subgroup CLIPBOARD
+    (defvar *clipboard-yank-map*
+      (let ((m (make-sparse-keymap)))
+        (add-clipboard-keys m "clipboard-yank")
+        (define-key m (kbd "Escape") '*root-map*)
+        m))
+    
+    (defvar *clipboard-put-map*
+      (let ((m (make-sparse-keymap)))
+        (add-clipboard-keys m "clipboard-put")
+        (define-key m (kbd "Escape") '*root-map*)
+        m))
+    
+    ;; Subgroup STATUS
+    (defvar *status-map*
+      (let ((m (make-sparse-keymap)))
+        (define-key m (kbd "a") "time")
+        (define-key m (kbd "C-a") "time")
+        (define-key m (kbd "b") "battery")
+        (define-key m (kbd "C-b") "battery")
+        (define-key m (kbd "c") "calendar")
+        (define-key m (kbd "C-c") "calendar")
+        (define-key m (kbd "v") "qvolume")
+        (define-key m (kbd "C-v") "qvolume")
+        (define-key m (kbd "Escape") '*root-map*)
+        m))
+    
+    ;; Subgroup WINDOW
+    (defvar *window-map*
+      (let ((m (make-sparse-keymap)))
+        (dotimes (i (length *regular-map*))
+          (define-key m
+                      (kbd (format nil "~a" (char *regular-map* i)))
+                      (format nil "select-window-by-number ~A" (char *window-number-map* i)))
+          (define-key m
+                      (kbd (format nil "~a" (char *shifted-map* i)))
+                      (format nil "pull ~A" (char *window-number-map* i))))
+        (define-key m (kbd "w") "windows")
+        m))
+    
+    ;; Root Map
+    (setf *root-map*
+          (let ((m (make-sparse-keymap)))
+            ; Windows
+            (define-key m (kbd "o") "only")
+            (define-key m (kbd "C-o") "only")
+            (define-key m (kbd "s") "vsplit")
+            (define-key m (kbd "C-s") "vsplit")
+            (define-key m (kbd "v") "hsplit")
+            (define-key m (kbd "C-v") "hsplit")
+            ; Frames
+            (define-key m (kbd "Left") "move-focus left")
+            (define-key m (kbd "Right") "move-focus right")
+            (define-key m (kbd "Up") "move-focus up")
+            (define-key m (kbd "Down") "move-focus down")
+            (define-key m (kbd "S-Left") "move-window left")
+            (define-key m (kbd "S-Right") "move-window right")
+            (define-key m (kbd "S-Up") "move-window up")
+            (define-key m (kbd "S-Down") "move-window down")
+            (define-key m (kbd "h") "move-focus left")
+            (define-key m (kbd "l") "move-focus right")
+            (define-key m (kbd "j") "move-focus down")
+            (define-key m (kbd "k") "move-focus up")
+            (define-key m (kbd "C-h") "move-focus left")
+            (define-key m (kbd "C-l") "move-focus right")
+            (define-key m (kbd "C-j") "move-focus down")
+            (define-key m (kbd "C-k") "move-focus up")
+            (define-key m (kbd "H") "move-window left")
+            (define-key m (kbd "L") "move-window right")
+            (define-key m (kbd "J") "move-window down")
+            (define-key m (kbd "K") "move-window up")
+            (define-key m (kbd "M-l") "redisplay")
+            (define-key m (kbd "=") "balance-frames")
+            (define-key m (kbd "'") "windowlist")
+            (define-key m (kbd "\"") "select")
+            (define-key m (kbd "-") "fclear")
+            (define-key m (kbd "C-t") "other")
+            (define-key m (kbd "C-r") "iresize")
+            (define-key m (kbd "C-w") "windows")
+            (define-key m (kbd "f") "fselect")
+            (define-key m (kbd "F") "curframe")
+            (define-key m (kbd "SPC") "next")
+            (define-key m (kbd "C-SPC") "prev")
+            (define-key m (kbd "TAB") "fnext")
+            (define-key m (kbd "S-TAB") "fprev")
+            (define-key m (kbd "C-n") "pull-hidden-next")
+            (define-key m (kbd "C-p") "pull-hidden-previous")
+            ; Submaps
+            (define-key m (kbd "F1") '*help-map*)
+            (define-key m (kbd "e") '*exec-map*)
+            (define-key m (kbd "C-e") '*exec-map*)
+            (define-key m (kbd "g") '*groups-map*)
+            (define-key m (kbd "C-g") '*groups-map*)
+            (define-key m (kbd "y") '*clipboard-yank-map*)
+            (define-key m (kbd "p") '*clipboard-put-map*)
+            (define-key m (kbd "a") '*status-map*)
+            (define-key m (kbd "C-a") '*status-map*)
+            (define-key m (kbd "w") '*window-map*)
+            (define-key m (kbd "C-w") '*window-map*)
+            ; Exec
+            (define-key m (kbd "V") "exec gvim")
+            (define-key m (kbd "Return") (format nil "exec ~A" terminal))
+            ; Other
+            (define-key m (kbd "`") "exec-in-terminal")
+            (define-key m (kbd "#") "mark")
+            (define-key m (kbd ":") "eval")
+            (define-key m (kbd ";") "colon")
+            (define-key m (kbd "A") "title")
+            (define-key m (kbd "Escape") "abort")
+            (define-key m (kbd "F11") "fullscreen")
+            (define-key m (kbd "d") "delete")
+            (define-key m (kbd "C-d") "delete")
+            (define-key m (kbd "M-l") "redisplay")
+            (define-key m (kbd "N") "number")
+            (define-key m (kbd "R") "remove")
+            (define-key m (kbd "b") "banish")
+            (define-key m (kbd "C-b") "ratwarp 500 5")
+            (define-key m (kbd "B") "ratwarp 500 500")
+            (define-key m (kbd "i") "info")
+            (define-key m (kbd "m") "lastmsg")
+            (define-key m (kbd "t") "send-escape")
+            (define-key m (kbd "u") "next-urgent")
+            m))
+    
+    ;; Input map
+    (define-key *input-map* (kbd "S-Insert") 'input-yank-selection)
+    (define-key *input-map* (kbd "S-SPC")
+                #'(lambda (input c)
+                    (declare (ignore c))
+                    (input-insert-char input #\Space)))
+    
+    ;; Resize map
+    (flet ((dk (k c)
+               (define-key *resize-map* k (format nil c (* 5 *resize-increment*)))))
+      (dk (kbd "S-Right") "resize ~D 0")
+      (dk (kbd "S-Left") "resize -~D 0")
+      (dk (kbd "S-Down") "resize 0 ~D")
+      (dk (kbd "S-Up") "resize 0 -~D")
+      (dk (kbd "L") "resize ~D 0")
+      (dk (kbd "H") "resize -~D 0")
+      (dk (kbd "J") "resize 0 ~D")
+      (dk (kbd "K") "resize 0 -~D"))
+    
+    ;; Startup
+    (run-shell-command "img.sh") ; Really small random image displayer
+    (run-shell-command "stalonetray")
+    (run-shell-command "nm-applet --sm-disable")

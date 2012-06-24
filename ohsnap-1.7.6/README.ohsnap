@@ -1,0 +1,38 @@
+Ohsnap is a monospaced bitmap font based on Artwiz Snap. There are ISO8859-1 versions, versions with status icons, consolefonts and I started working on ISO10646-1 versions. 
+All have bold too. There are three sizes now: 6x11, 7x12 and 7x14.
+
+To install manually system-wide, copy the .pcf files to /usr/share/fonts/local and copy the .psfu files to /usr/share/kbd/consolefonts.
+Then do:
+sudo fc-cache -f
+sudo mkfontscale /usr/share/fonts/local
+sudo mkfontdir /usr/share/fonts/local
+
+I would recommend trying to use the ISO10646-1 versions first and use the ISO8859-1 versions as fallback.
+To use the ISO10646-1:
+-*-ohsnapu-medium-r-normal-*-11-*-*-*-*-*-*-*
+-*-ohsnapu-bold-r-normal-*-11-*-*-*-*-*-*-*
+For the ISO8859-1:
+-*-ohsnap-medium-r-normal-*-11-*-*-*-*-*-*-*
+-*-ohsnap-bold-r-normal-*-11-*-*-*-*-*-*-*
+
+The icon versions have status "icons" that I drew into the font. The inspiration for the icons came from lokaltog (https://github.com/Lokaltog) and his post in the dwm 
+hackers thread on Arch Linux forums (https://bbs.archlinux.org/viewtopic.php?pid=724236#p724236).
+To use the icon versions:
+-*-ohsnap.icons-medium-r-normal-*-11-*-*-*-*-*-*-*
+-*-ohsnap.icons-bold-r-normal-*-11-*-*-*-*-*-*-*
+
+From a terminal, you can do something like:
+echo -e '\xB7' to display a clock icon for example and then copy the output to a script.
+You can check out the ohsnap thread on the forums (https://bbs.archlinux.org/viewtopic.php?id=130562&p=1) for screenshots and discussion.
+You can also use gbdfed to view and edit the font (http://sofia.nmsu.edu/~mleisher/Software/gbdfed/).
+
+To try the consolefont, you can do: setfont ohsnap6x11r for example. See your distros documentation for a more permanent solution.
+
+Created by stlarch (stlarchie@gmail.com)
+
+Released under GPLv2 license. (http://www.gnu.org/licenses/gpl-2.0.html)
+Do what thou wilt shall be the whole of the Law!
+
+Changes in version 1.7.5: Added consolefonts and ISO10646-1 versions and dropped the 8x15 and 8x17 sizes.
+
+Changes in version 1.7.6: Fixes

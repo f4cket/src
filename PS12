@@ -1,0 +1,17 @@
+function precmd {
+    export PS1="%m@%(!.%{${RED}%}%n.%{${GREEN}%}%n)% %{${WHITE}%}% %{${WHITE}%}%~ %#"
+    }
+
+    export RPS1="%(?..%?)"
+
+    export SPROMPT='%R is not available, maybe you fool wanted %r? '
+
+    export PS2='`_> '
+
+    preexec () {
+        if [[ "$TERM" == "screen" ]]; then
+	    local CMD=${1[(wr)^(*=*|sudo|-*)]}
+	        echo -ne "\ek$CMD\e\\"
+		    fi
+		    }
+		    SELECTMIN=5

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+monitor=0
+TAGS=( $(herbstclient tag_status $monitor) )
+while true ; do
+    for i in "${TAGS[@]}" ; do
+        echo -n "^ca(1,herbstclient focus_monitor $monitor && "'herbstclient use "'${i:1}'") '${i:2}" ^ca()"
+    done
+    echo
+    sleep 1                                                                                                                                                                                                                       
+done

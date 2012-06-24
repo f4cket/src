@@ -1,0 +1,125 @@
+diff -r 6a36c0456b66 color.lisp
+--- a/color.lisp	Wed Dec 28 16:09:48 2011 +0100
++++ b/color.lisp	Tue Jan 03 18:44:44 2012 +0100
+@@ -66,29 +66,38 @@
+   (xlib:alloc-color (xlib:screen-default-colormap (screen-number screen)) color))
+ 
+ (defun lookup-color (screen color)
+-  (xlib:lookup-color (xlib:screen-default-colormap (screen-number screen)) color))
++  (flet ((hex ()
++           (apply #'xlib:make-color
++                  (loop for (x y) in '((:red 16) (:green 8) (:blue 0))
++                     nconcing (list x (/ (ldb (byte 8 y) color)
++                                         256))))))
++    (cond ((integerp color) (hex))
++          ((typep color 'xlib:color) color)
++          (t (xlib:lookup-color (xlib:screen-default-colormap (screen-number screen)) color)))))
+ 
+ ;; Normal colors are dimmed and bright colors are intensified in order
+ ;; to more closely resemble the VGA pallet.
+ (defun update-color-map (screen)
+   "Read *colors* and cache their pixel colors for use when rendering colored text."
+-  (let ((scm (xlib:screen-default-colormap (screen-number screen))))
+-    (labels ((map-colors (amt)
+-               (loop for c in *colors*
+-                     as color = (xlib:lookup-color scm c)
+-                     do (adjust-color color amt)
+-                     collect (xlib:alloc-color scm color))))
+-      (setf (screen-color-map-normal screen) (apply #'vector (map-colors -0.25))
+-            (screen-color-map-bright screen) (apply #'vector (map-colors 0.25))))))
++  (labels ((map-colors (amt)
++             (loop for c in *colors*
++                as color =  (lookup-color screen c)
++                do (adjust-color color amt)
++                collect (alloc-color screen color))))
++    (let ((amt (if *bright-colors*
++                   '(-0.25 . 0.25)
++                   '(0.0 . 0.0))))
++      (setf (screen-color-map-normal screen) (apply #'vector (map-colors (car amt)))
++            (screen-color-map-bright screen) (apply #'vector (map-colors (cdr amt)))))))
+ 
+ (defun update-screen-color-context (screen)
+-  (let* ((cc (screen-message-cc screen))
+-         (bright (lookup-color screen *text-color*)))
+-    (setf
+-     (ccontext-default-fg cc) (screen-fg-color screen)
+-     (ccontext-default-bg cc) (screen-bg-color screen))
+-    (adjust-color bright 0.25)
+-    (setf (ccontext-default-bright cc) (alloc-color screen bright))))
++  (let ((cc (screen-message-cc screen))
++        (bright (lookup-color screen *text-color*)))
++    (when *bright-colors*
++      (adjust-color bright 0.25))
++    (setf (ccontext-default-fg cc) (screen-fg-color screen)
++          (ccontext-default-bg cc) (screen-bg-color screen)
++          (ccontext-default-bright cc) (alloc-color screen bright))))
+ 
+ (defun get-bg-color (screen cc color)
+   (setf *background* color)
+diff -r 6a36c0456b66 mode-line.lisp
+--- a/mode-line.lisp	Wed Dec 28 16:09:48 2011 +0100
++++ b/mode-line.lisp	Tue Jan 03 18:44:44 2012 +0100
+@@ -307,8 +307,8 @@
+   (xlib:create-window
+    :parent parent
+    :x 0 :y 0 :width 1 :height 1
+-   :background (alloc-color screen *mode-line-background-color*)
+-   :border (alloc-color screen *mode-line-border-color*)
++   :background (alloc-color screen (lookup-color screen *mode-line-background-color*))
++   :border (alloc-color screen (lookup-color screen *mode-line-border-color*))
+    :border-width *mode-line-border-width*
+    ;; You can click the modeline
+    :event-mask (xlib:make-event-mask :button-press :exposure)
+@@ -375,15 +375,16 @@
+ (defun make-mode-line-gc (window screen)
+   (xlib:create-gcontext :drawable window
+                         :font (screen-font screen)
+-                        :foreground (alloc-color screen *mode-line-foreground-color*)
+-                        :background (alloc-color screen *mode-line-background-color*)))
++                        :foreground (alloc-color screen (lookup-color screen *mode-line-foreground-color*))
++                        :background (alloc-color screen (lookup-color screen *mode-line-background-color*))))
+ 
+ 
+ (defun update-mode-line-color-context (ml)
+   (let* ((cc (mode-line-cc ml))
+          (screen (mode-line-screen ml))
+          (bright (lookup-color screen *mode-line-foreground-color*)))
+-    (adjust-color bright 0.25)
++    (when *bright-colors*
++      (adjust-color bright 0.25))
+     (setf (ccontext-default-bright cc) (alloc-color screen bright))))
+ 
+ (defun make-head-mode-line (screen head format)
+diff -r 6a36c0456b66 primitives.lisp
+--- a/primitives.lisp	Wed Dec 28 16:09:48 2011 +0100
++++ b/primitives.lisp	Tue Jan 03 18:44:44 2012 +0100
+@@ -109,6 +109,7 @@
+           *default-group-name*
+           *window-border-style*
+           *data-dir*
++          *bright-colors*
+           add-hook
+           clear-window-placement-rules
+           concat
+@@ -154,6 +155,9 @@
+ (defvar *grab-pointer-count* 0
+   "The number of times the pointer has been grabbed")
+ 
++(defvar *bright-colors* t
++  "Make colors brighter. This is the default.")
++
+ ;;; Hooks
+ 
+ (defvar *command-mode-start-hook* '(command-mode-start-message)
+diff -r 6a36c0456b66 screen.lisp
+--- a/screen.lisp	Wed Dec 28 16:09:48 2011 +0100
++++ b/screen.lisp	Tue Jan 03 18:44:44 2012 +0100
+@@ -256,7 +256,7 @@
+ 
+ (defmacro set-any-color (val color)
+   `(progn (dolist (s *screen-list*)
+-            (setf (,val s) (alloc-color s ,color)))
++            (setf (,val s) (alloc-color s (lookup-color s ,color))))
+     (update-colors-all-screens)))
+ 
+ ;; FIXME: I don't like any of this.  Isn't there a way to define

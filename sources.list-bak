@@ -1,0 +1,15 @@
+## CRUNCHBANG
+## Compatible with Debian Wheezy, but use at your own risk.
+deb http://packages.crunchbang.org/waldorf waldorf main
+#deb-src http://packages.crunchbang.org/waldorf waldorf main
+deb http://www.bchemnet.com/suldr/ debian extra
+## DEBIANdd this line to your list of repositories by
+#    editing your /etc/apt/sources.list
+deb http://repository.spotify.com stable non-free
+
+deb http://ftp.debian.org/debian/ wheezy main contrib non-free
+#deb-src http://ftp.debian.org/debian/ wheezy main contrib non-free
+
+## DEBIAN SECURITY
+deb http://security.debian.org/ wheezy/updates main
+#deb-src http://security.debian.org/ wheezy/updates main

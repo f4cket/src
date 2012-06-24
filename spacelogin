@@ -1,0 +1,32 @@
+#!/bin/bash
+#ANSI color scheme script featuring Space Invaders
+#
+# Original: http://crunchbanglinux.org/forums/post/126921/#p126921
+# Modified by lolilolicon
+ 
+
+f=3 b=4
+for j in f b; do
+  for i in {0..7}; do
+    eval ${j}${i}=\$\'\\e\[${!j}${i}m\'
+  done
+done
+bld=$'\e[1m'
+rst=$'\e[0m'
+
+cat << EOF
+$bld
+Gentoo Linux$bld$f2
+Elite Force Super System$f4 
+Linux 3.3.4-gentoo_pax$f2 
+Compiled:$f2Wed May 9 20:00:05 CEST 2012 i686$f3 
+i686 Intel(R) Pentium(R) 4 CPU 3.20GHz Genuine Intel GNU/Linux						
+								
+ $f1  ▀▄   ▄▀     $f3  ▄██▄     $f4  ▀▄   ▄▀     $f6  ▄██▄   $rst
+ $f1 ▄█▀███▀█▄    $f3▄█▀██▀█▄   $f4 ▄█▀███▀█▄    $f6▄█▀██▀█▄ $rst       
+ $f1█▀███████▀█   $f3▀▀█▀▀█▀▀   $f4█▀███████▀█   $f6▀▀█▀▀█▀▀ $rst        
+ $f1▀ ▀▄▄ ▄▄▀ ▀   $f3▄▀▄▀▀▄▀▄   $f4▀ ▀▄▄ ▄▄▀ ▀   $f6▄▀▄▀▀▄▀▄ $rst        
+
+$bld$f4	[READY FOR IMPUT] 
+ 
+EOF

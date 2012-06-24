@@ -1,0 +1,579 @@
+;; -*-lisp-*-
+(in-package :stumpwm)
+
+(set-prefix-key (kbd "C-i"))
+
+(defun load-file (file)
+  (load (concatenate 'string (stumpwm::getenv "HOME") "/.stump/" file ".lisp")))
+
+(load-file "helpers")
+(load-file "swank")
+(load-file "vikeys")
+(load-file "groupkeys")
+(load (home ".stump-colors-wombat"))
+
+(load-module "notifications")
+(define-key *root-map* (kbd "N") '*notifications-map*)
+
+(load-file "mode-line")
+(load-file "shifting")
+(load-file "defprog")
+
+(group-rename (current-group) "1")
+(gnewbg "2")
+(gnewbg "3")
+(gnewbg-float "4")
+
+;; (if-file-exists #'restore-from-file (str ".stump-desk-" *hostname*))
+;; (if-file-exists #'restore-window-placement-rules (str ".stump-rules-" *hostname*))
+
+(setq *startup-message* "^1*^BStumpWM^b: not powered by bee-ant AI yet."
+      *suppress-frame-indicator* t
+      *debug-level* 0
+      *input-completion-type* :fuzzy
+      ;; :sloppy is broken I think, causes windows to lose focus when moving
+      *mouse-focus-policy* :click       ; click, ignore, sloppy
+      ;; *shell-program* (stumpwm::getenv "SHELL")
+      ;; allow longer window titles
+      *window-format* "%m%n%s%100t"
+      *input-history-ignore-duplicates* t
+      ;; *new-window-preferred-frame* '(:empty :focused)
+      )
+
+(defvar *terminal* "urxvtcd")
+
+(set-font "-xos4-terminus-bold-r-normal--14-140-72-72-c-80-iso8859-7")
+;; (set-font "-xos4-terminus-medium-r-normal--14-140-72-72-c-80-iso8859-7")
+;; (set-font "-*-terminus-*-*-*")
+
+(bind "I" "show-window-properties")
+(bind "b" "windowlist")
+(bind "C-b" "windowlist")
+(bind "n" "next-in-frame")
+(bind "p" "prev-in-frame")
+(bind "F" "fullscreen")
+(bind "2" "vsplit")
+(bind "3" "hsplit")
+(bind "D" "exec ~/bin/date_converter.clj")
+(bind "H" "exec ~/bin/hyphenate_words.clj")
+
+(load (home "src/stumpwm/contrib/window-tags.lisp"))
+(bind "C-t" "tag-window")
+(bind "C-M-t" "pull+push")
+
+(global "s-C-f" "conkeror -f unfocus")
+(global "s-t" "echo-date")
+(global "s-a" "windowlist")
+(global "s-TAB" "next") ; fnext other fother globally-previous
+(global "s-ISO_Left_Tab" "prev")
+
+(global "s-n" "next-in-frame")
+(global "s-m" "prev-in-frame")
+(global "s-o" "gnext")
+(global "s-i" "gprev")
+(global "s-;" "exec")
+(global "s-RET" "colon")
+
+(defprog conkeror "f" "conkeror" '(:class "Conkeror"))
+(global "M-s-f" "exec conkeror $(xclip -o)")
+(defprog emacs "e" "emacs" '(:class "Emacs"))
+(defprog urxvt "c" *terminal* '(:class "URxvt"))
+(defprog irc "d" "urxvtcd -title irc -e irc-session" '(:title "irc"))
+(defprog firefox "x" "firefox" '(:class "Firefox"))
+(defprog google-chrome "g" "google-chrome" '(:class "Google-chrome"))
+(defprog zathura "z" "zathura" '(:class "Zathura"))
+(defprog mplayer "p" "mplayer" '(:class "mplayer2"))
+(defprog evolution "u" "evolution" '(:class "Evolution"))
+(defprog unison "w" "unison homel" '(:class "Unison"))
+(defprog org-capture "r" "emacsclient -e '(org-capture)'" '(:title "Capture"))
+
+(define-frame-preference "1"
+    (2 nil t :class "mplayer2")
+  (2 nil t :title "YouTube")
+  (2 nil t :class "Unison-gtk"))
+
+(defcommand echo-colors-brief () ()
+  "Output a brief list of currently defined colors."
+  (echo-string (current-screen) (eval "
+BOLD ^B^0*black ^1*red ^2*green ^3*yellow ^4*blue ^5*magenta ^6*cyan ^7*white ^8*user ^9*user^n
+NONE ^0*black ^1*red ^2*green ^3*yellow ^4*blue ^5*magenta ^6*cyan ^7*white ^8*user ^9*user^n")))
+
+;; (set-normal-gravity :center)
+;; (set-maxsize-gravity :bottom)
+(set-transient-gravity :top) ;popups
+
+;; (defun emacs-display-compilation-buffer (window)
+;;  (when (and (string= (window-class window) "Emacs")
+;;             (string= (window-title window) "*compilation*")
+;;             (not (window-visible-p window)))
+;;    (let* ((group (window-group window))
+;;           (new-frame (frame-by-number group (split-frame group :row 4/5))))
+;;      (when new-frame
+;;        (frame-raise-window group new-frame window nil)
+;;        (mapc #'update-decoration (group-windows group))))))
+
+;; (add-hook *deny-raise-request-hook* 'emacs-display-compilation-buffer))
+
+(defcommand echo-date () ()
+  "Display date highlighting the most important parts"
+  (message "^1*~a" (format-expand *time-format-string-alist*
+                                  "^B%l^b:%M:%S %p ^B%a^b %Y-%m-^B%e^b")))
+
+(defcommand fullscreen-with-modeline () ()
+  "fake version of fullscreen that retains border and mode-line"
+  (let ((group-file (format nil "/tmp/stumpwm-group-~a" (group-name (current-group)))))
+    (if (null (cdr (head-frames (current-group) (current-head))))
+        (restore-from-file group-file)
+        (progn
+          (dump-group-to-file group-file)
+          (only)))))
+
+(global "s-\\" "fullscreen-with-modeline")
+
+;; (defparameter *colors*
+;;   (list "#8f8f8f" ;; dark grey
+;;         "#cc9393" ;; zenburn red
+;;         "#7f9f7f" ;; zenburn green
+;;         "#f0dfaf" ;; tan
+;;         "#8cd0d3" ;; blue
+;;         "#dc8cc3" ;; magenta
+;;         "#93e0e3" ;; cyan
+;;         "#dcdccc" ;; white
+;;         "#dfaf8f" ;; orange
+;;         ))
+
+(defcommand delete-other-windows () ()
+  (let ((win (current-window)))
+   (remove-split)
+   (focus-all win)))
+
+(global "s-0" "remove-split")
+(global "s-1" "delete-other-windows")
+(global "s-2" "vsplit")
+(global "s-3" "hsplit")
+
+(defun more-than-one-frame? ()
+  (< 1 (length (group-frames (window-group (current-window))))))
+
+(defun last-window ()
+  "like other-window but returns it doesn't focus"  
+  (frame-window (tile-group-last-frame (current-group))))
+
+(defun scroll-down ()
+  "Send a single 'a' to the focused window"
+  (xtest:fake-key-event *display* 66 t) ; ctrl
+  (xtest:fake-key-event *display* 118 t) ; v
+  (xtest:fake-key-event *display* 66 nil)
+  (xtest:fake-key-event *display* 118 nil))
+
+(defun scroll-up ()
+  "Send a single 'a' to the focused window"
+  (xtest:fake-key-event *display* 64 t) ; meta
+  (xtest:fake-key-event *display* 118 t) ; v
+  (xtest:fake-key-event *display* 64 nil)
+  (xtest:fake-key-event *display* 118 nil))
+
+
+(defun scroll-other-window (direction)
+  (when (more-than-one-frame?)
+    (let ((me (window-xwin (current-window)))
+          (other (window-xwin (last-window))))
+      (if (equal direction "down")
+          (scroll-down)
+          (scroll-up)))))
+
+;; (scroll-other-window "down")
+;; (defcommand scroll-other-window-up () ()
+;;   )
+
+;; (defcommand scroll-other-window-down () ()
+;;   (scroll-other-window "down"))
+;; (global "C-s-v" "scroll-other-window-down")
+
+;; (global "C-S-s-v" "scroll-other-window-down")
+
+;; (progn
+;;        )
+;; (meta (kbd "M-v"))
+;; (screen-windows (current-screen))
+;; (send-fake-key (screen-current-window screen) key)
+;; (other-window)
+
+;; "C-s-v" down "C-v"
+;; "C-S-s-v" up "M-v"
+;; (vsplit)
+
+(defcommand middleclick () ()
+  "Send a middleclick event"
+  (xtest:fake-button-event *display* 2 t)
+  (xtest:fake-button-event *display* 2 nil))
+
+;; add irc to urgent windows list
+;; register-urgent-window
+;; use next-urgent
+
+;; (setf *mode-line-position* :bottom)
+
+(defvar *globally-previous* '())
+(defvar *globally-current* '())
+
+(defun remember-focus-window-hook (new old)
+  (setf *globally-previous* *globally-current*)
+  (setf *globally-current* new))
+
+(add-hook *focus-window-hook* 'remember-focus-window-hook)
+
+(defcommand globally-previous () ()
+	    "Switch to the previous window (possibly from another group) that had focus"
+	    (let* 
+	      ((window *globally-previous*)
+	       (group (window-group window))
+	       (frame (window-frame window)))
+	      (gselect group)
+	      (focus-frame group frame)
+	      (focus-window window)))
+
+(global "s-SPC" "globally-previous")
+
+(defcommand force-redisplay () ()
+  "Like redisplay, only resizing to 1x1"
+  (let ((window (current-window)))
+       (set-window-geometry 
+        window 
+        :width (truncate (/ (window-width window) 2))
+        :height (truncate (/ (window-height window) 2)))
+       (xlib:display-finish-output *display*)
+       (sleep 0.1)
+       (redisplay)))
+
+(defcommand ratcenter () ()
+  "Center the mouse pointer in current frame"
+  (let*
+    ((f (tile-group-current-frame (current-group)))
+         (ml (head-mode-line (current-head (current-group))))
+         (ml-height (if ml (mode-line-height ml) 0))
+     (cx (+ (frame-x f) (ash (frame-width f) -1)))
+     (cy (+ ml-height (frame-y f) (ash (frame-height f) -1))))
+    (ratwarp cx cy)))
+
+(defcommand rattopleft () ()
+  ""
+  (let* ((f (tile-group-current-frame (current-group)))
+         (ml (head-mode-line (current-head (current-group))))
+         (ml-height (if ml (mode-line-height ml) 0))
+         (cx (1+ (frame-x f)))
+         (cy (+ (frame-y f) ml-height)))
+    (ratwarp cx cy)))
+
+(defcommand ratbottomright () ()
+  ""
+  (let* ((f (tile-group-current-frame (current-group)))
+         (ml (head-mode-line (current-head (current-group))))
+         (ml-height (if ml (mode-line-height ml) 0))
+         (cx (+ -1 (frame-x f) (frame-width f)))
+         (cy (+ -1 (frame-y f) ml-height (frame-height f))))
+    (ratwarp cx cy)))
+
+(global "s-," "fclear")
+
+(defcommand pull-window-select () ()
+  (let ((win (select-window-from-menu (sort-windows (current-group)) *window-format*)))
+    (if win (pull-window win))))
+
+(defcommand paste () ()
+  "Simulate an S-Insert keypress on the focused window"
+  (let ((shift-keycode
+	 (xlib:keysym->keycodes *display*
+				(keysym-name->keysym "Shift_R")))
+	(insert-keycode
+	 (xlib:keysym->keycodes *display*
+				(keysym-name->keysym "Insert"))))
+    (xtest:fake-key-event *display* shift-keycode t)
+    (xtest:fake-key-event *display* insert-keycode t)
+    (xtest:fake-key-event *display* insert-keycode nil)
+    (xtest:fake-key-event *display* shift-keycode nil)))
+
+(defun send-key-last-frame (key)
+  (focus-last-frame (current-group))
+  (let ((scroll-keycode
+         (xlib:keysym->keycodes *display*
+                                (keysym-name->keysym key))))
+    (xtest:fake-key-event *display* scroll-keycode t)
+    (xtest:fake-key-event *display* scroll-keycode nil)
+    (focus-last-frame (current-group))))
+
+(defcommand scroll-last-down () ()
+  "Scroll down the last frame that had focus"
+  (send-key-last-frame "Page_Down"))
+
+(defcommand scroll-last-up () ()
+  "Scroll up the last frame that had focus"
+  (send-key-last-frame "Page_Up"))
+
+(defcommand send-space-last () ()
+  "Space space the last frame that had focus"
+  (send-key-last-frame "space"))
+
+(global "s-s" "send-space-last")
+(global "s-v" "scroll-last-down")
+(global "s-b" "scroll-last-up")
+
+(load-file "transparency")
+(load-file "cons")
+
+(define-key *root-map* (kbd "s-v") nil)
+
+(load-file "url-encode")
+
+(defcommand capture-selection () ()
+  "Store the selected text and window title with org-mode's remember"
+  (let ((title (window-title (current-window)))
+        (selection (get-x-selection)))
+    (run-shell-command (format nil "emacsclient \"org-protocol:/capture:/d/url/~A/~A\""
+                               (url-encode title)
+                               (url-encode selection)))))
+ 
+;; (bordeaux-threads:make-thread (lambda () (sleep foo) (update-mode-line)
+
+(load-file "wicd")
+;; (setq *wicd-connection-display-status* t)
+
+(defcommand wicd-debug () ()
+   (setq *wicd-connection-display-status* (not *wicd-connection-display-status*)))
+
+(defcommand-alias wscan wicd-scan-and-connect)
+
+(load-module "pwsafe")
+(defcommand-alias pw pwsafe-menu)
+(bind "a" "pwsafe-menu")
+
+(defcommand color () ()
+  "Display color at top-left corner of region"
+  (message (run-shell-command "import ppm: | convert ppm: -crop 1x1+0+0 ppm: | tail -n 1 | perl -ne 'printf(\"#%02x%02x%02x\",unpack \"CCC\")'" t)))
+
+(bind "t" "color")
+
+(defcommand fix-height () ()
+  "Resize the current frame height so that the current window's sides are
+touching the frame sides if the current window is of fixed proportions (e.g.
+mplayer)"
+  (let* ((window (current-window))
+         (maxsize (window-maxsize-p window)))
+    (when maxsize
+      (let* ((frame (window-frame window))
+             (frame-width (frame-width frame))
+             (frame-height (frame-height frame))
+             (new-height (truncate (/ frame-width maxsize)))
+             ;; not sure why it's too short w/o 15
+             (difference (+ 15 (- new-height frame-height))))
+        (resize 0 difference)))))
+
+(defcommand fix-width () ()
+  "Resize the current frame width so that the current window's sides are
+touching the frame sides if the current window is of fixed proportions (e.g.
+mplayer)"
+  (let* ((window (current-window))
+         (maxsize (window-maxsize-p window)))
+    (when maxsize
+      (let* ((frame (window-frame window))
+             (frame-width (frame-width frame))
+             (frame-height (frame-height frame))
+             (new-width (truncate (* frame-height maxsize)))
+             ;; not sure why it's too short w/o 15
+             (difference (- new-width frame-width)))
+        (resize difference 0)))))
+
+(bind "x" "fix-height")
+(bind "X" "fix-width")
+
+(defcommand bury-number () ()
+  "Set window number of current window higher than any other window."
+  (let* ((highest-number (window-number
+                          (first (last (sort (all-windows)
+                                             #'< :key #'window-number))))))
+    (setf (window-number (current-window)) (1+ highest-number))
+    (repack-window-numbers)
+    (message "Window number buried")))
+
+(bind "u" "bury-number")
+
+;;---------------------------------------------------------
+;; hog frame
+;;---------------------------------------------------------
+(defcommand hog-frame () ()
+  (labels ((previous-frame ()
+             (and (tile-group-last-frame (current-group))
+                  (find (tile-group-last-frame (current-group)) (group-frames (current-group))))))
+    (when (previous-frame)
+      (let* ((original-window (current-window))
+             (other-windows (remove-if (lambda (window) (eq original-window window)) 
+                                       (frame-windows (current-group) (window-frame original-window))))
+             (previous-frame (previous-frame)))
+        (dolist (window other-windows)
+          (pull-window window previous-frame))
+        (focus-all original-window)))))
+
+(defcommand pull-select-from-menu () () 
+  (let ((win (select-window-from-menu (all-windows)
+                                      *window-format*)))
+    (move-window-to-group win (current-group))
+    (pull-window win)))
+
+;;---------------------------------------------------------
+;; kill window
+;;---------------------------------------------------------
+(defun kill-window (menu)
+  (let* ((element (nth (menu-state-selected menu)
+                       (menu-state-table menu)))
+         (selected-window (second element)))
+    (menu-scroll-down menu)
+    (delete-window selected-window)))
+
+(defun select-window-from-menu (windows fmt)
+  (define-key *menu-map* (kbd "C-k") 'kill-window)
+  (let ((result (second (select-from-menu
+                         (current-screen)
+                         (mapcar (lambda (w)
+                                   (list (format-expand *window-formatters* fmt w) w))
+                                 windows)
+                         nil
+                         (or (position (current-window) windows) 0)))))
+    (undefine-key *menu-map* (kbd "C-k"))
+    result))
+
+;;; exchange-direction
+
+(setq *stumpwm-started* t)
+
+(defcommand gopen (cmd) ((:rest "gnome-open "))
+  "gnome-open"
+  (run-prog *shell-program*
+            :args (list "-c" (str "gnome-open " cmd))
+            :wait nil))
+
+(global "s-." "gopen")
+
+;;; dictionary
+(defcommand dictionary (word) ((:rest "dictionary: "))
+  "conkeror"
+  (run-prog *shell-program*
+            :args (list "-c" (str "conkeror \"dictionary " word "\""))
+            :wait nil))
+
+(bind "d" "dictionary")
+
+(defun select-file (path)
+  (select-from-menu (current-screen)
+                    (mapcar #'file-namestring (list-directory path))
+                    "Select a file"))
+
+(defvar *dump-dir* (home ".layouts/"))
+
+(defcommand restore-layout () ()
+  (let ((choice (concat *dump-dir* (select-file *dump-dir*))))
+    (when choice
+      (restore-from-file choice))))
+
+(bind "l" "restore-layout")
+
+;; (defcommand dedicate-frame () ()
+;;   "never open window in this frame")
+
+;; (defcommand catchall-frame () ()
+;;   "open all windows here")
+
+(defcommand computer () ()
+  (run-shell-command "gnome-open computer:///"))
+
+(defcommand trash () ()
+  "Open the trash folder in file manager"
+  (run-shell-command "gnome-open trash:///"))
+
+(defcommand desktop () ()
+  "Open the Desktop folder in file manager"
+  (run-shell-command "gnome-open ~/Desktop"))
+
+(defcommand increase-volume () ()
+  "Increase the sound volume"
+  (run-shell-command "amixer sset PCM 5+ unmute"))
+
+(defcommand decrease-volume () ()
+  "Decrease the sound volume"
+  (run-shell-command "amixer sset PCM 5- unmute"))
+
+(defcommand mute () ()
+  "Set the sound to mute"
+  (run-shell-command "amixer sset PCM mute"))
+
+(bind "V" "increase-volume")
+(bind "v" "decrease-volume")
+(global "XF86AudioRaiseVolume" "increase-volume")
+(global "XF86AudioLowerVolume" "decrease-volume")
+(global "XF86AudioMute" "mute-volume")
+
+(defcommand unfocus-conkeror () ()
+  "Unfocus the conkeror window so that mouse is released from flash"
+  (run-shell-command "conkeror -f unfocus"))
+
+(global "s-Escape" "unfocus-conkeror")
+
+(defcommand next-song-pandora () ()
+  "Change to next song in pandora"
+  (run-shell-command "pianoctl +"))
+
+(defcommand previous-song-pandora () ()
+  "Change to previous song in pandora"
+  (run-shell-command "pianoctl -"))
+
+(defcommand answer () ()
+  "Answer phone call"
+  (run-shell-command "phone.sh answer"))
+
+(defcommand hangup () ()
+  "End phone call"
+  (run-shell-command "phone.sh terminate"))
+
+(defcommand notmuch () ()
+  "Launch or focus notmuch email client"
+  (run-shell-command "emacsclient -e '(notmuch)'"))
+
+(defcommand doubleclick () ()
+  "Double-click mouse button 1 at currently focused point"
+  (run-shell-command "/usr/bin/xte 'mouseup 2' 'mouseclick 1' 'mouseclick 1' &"))
+
+(defcommand groveshark () ()
+  "Launch grooveshark"
+  (run-shell-command "google-chrome http://listen.grooveshark.com/"))
+
+(defcommand wireless-restart () ()
+  "Restart wireless connection"
+  (run-shell-command "killall nm-applet; nm-applet"))
+
+(load-file "clock")
+
+(defcommand noppoo () ()
+  (run-shell-command "xmodmap ~/.Xmodmap; xmodmap ~/.Xmodmap; xmodmap ~/.Xmodmap-noppoo"))
+
+(defcommand keyboard () ()
+  (run-shell-command "xmodmap ~/.Xmodmap"))
+
+(defcommand qwerty () ()
+  (run-shell-command "setxkbmap us")
+  (noppoo))
+
+(defcommand colemak () ()
+  (run-shell-command "setxkbmap us -variant colemak; xmodmap ~/.Xmodmap-colemak")
+  (noppoo))
+
+(load-file "emms")
+
+(defcommand lock-screen () ()
+  (run-shell-command "gnome-screensaver-command -l"))
+
+(global "C-M-l" "lock-screen")
+
+(defvar *wireless-keymap* (make-sparse-keymap))
+(define-key *root-map* (kbd "w") '*wireless-keymap*)
+(define-key *wireless-keymap* (kbd "r") "wireless-restart")
+(define-key *wireless-keymap* (kbd "c") "wscan")
+

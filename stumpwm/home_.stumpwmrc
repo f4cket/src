@@ -1,0 +1,219 @@
+;;; StumpWM init file
+(in-package :stumpwm)
+
+(set-prefix-key (kbd "C-t"))
+
+;; Window switching
+(define-key *top-map* (kbd "S-M-SPC") "prev-in-frame")
+(define-key *top-map* (kbd "M-SPC") "next-in-frame")
+(define-key *top-map* (kbd "M-z") "pull-hidden-other")
+
+;; Volume adjust buttons
+(define-key *top-map* (kbd "XF86AudioLowerVolume") "exec amixer -q set Master 5%- unmute")
+(define-key *top-map* (kbd "XF86AudioRaiseVolume") "exec amixer -q set Master 5%+ unmute")
+(define-key *top-map* (kbd "XF86AudioMute") "exec amixer -q set Master toggle")
+(define-key *top-map* (kbd "XF86WakeUp") "exec comp_wakeup.sh")
+(define-key *top-map* (kbd "XF86Display") "exec xrandr-swap-mirror")
+
+;; Turn screen on and off (requires vbetool)
+(define-key *root-map* (kbd "C-F5") "exec screen_onoff")
+;; Other neat tools
+(define-key *root-map* (kbd "C-F4") "bat")
+; Dump a picture of the screen
+(define-key *root-map* (kbd "C-F3") "screenshotdump") ; 
+; View the latest dumped picture of the screen
+(define-key *root-map* (kbd "C-F2") "exec screenshotviewlatest")
+; View computer-generated art (see http://metanohi.org/projects/alart/)
+(define-key *root-map* (kbd "C-F1") "exec alart-local")
+(define-key *root-map* (kbd "C-F7") "fort")
+
+(define-key *root-map* (kbd "!") "exec dmenu_run")
+
+;; Startup message
+(setf *startup-message* nil)
+
+;; Macro for creating shell-accessing functions
+(defmacro shelldef (name command)
+  `(defcommand ,name (&optional arg) (:rest)
+     (echo-string (current-screen)
+                  (run-shell-command (concatenate 'string ,command " " arg) t))
+   )
+)
+
+(defvar *es-win* nil
+  "to hold the window called emacsclient")
+(defun save-es-called-win ()
+  (setf *es-win* (current-window)))
+
+(defun return-es-called-win (win)
+  (let* ((group (window-group win))
+         (frame (window-frame win))
+         (old-frame (tile-group-current-frame group)))
+    (frame-raise-window group frame win)
+    (focus-all win)
+    (unless (eq frame old-frame)
+      (show-frame-indicator group))))
+
+;; Shell-accessing functions
+(shelldef ae "")
+(shelldef bat "battery")
+(shelldef screenshotdump "screenshotdump")
+(shelldef at "kando ~/.kando a")
+(shelldef ad "kando ~/.kando r")
+(shelldef fort "fortune")
+(shelldef run-if-not-running "run-if-not-running")
+
+;; Message window settings
+(set-bg-color "Black")
+(set-fg-color "White")
+(set-border-color "Grey")
+(set-msg-border-width 2)
+(set-focus-color "DarkGreen")
+(setf *message-window-padding* 1)
+(setf *maxsize-border-width* 0)
+(setf *normal-border-width* 0)
+(setf *transient-border-width* 2)
+(setf *window-border-style* :thin)
+(setf *mouse-focus-policy* :click)
+
+;(setf stumpwm:*debug-level* 10)
+
+;; Moving windows
+(define-key *root-map* (kbd "M-u") "move-focus up")
+(define-key *root-map* (kbd "M-d") "move-focus down")
+(define-key *root-map* (kbd "M-f") "move-focus right")
+(define-key *root-map* (kbd "M-b") "move-focus left")
+(define-key *root-map* (kbd "C-M-u") "move-window up")
+(define-key *root-map* (kbd "C-M-d") "move-window down")
+(define-key *root-map* (kbd "C-M-f") "move-window right")
+(define-key *root-map* (kbd "C-M-b") "move-window left")
+(define-key *root-map* (kbd ";") "colon")
+(define-key *root-map* (kbd "C-;") "colon")
+(define-key *root-map* (kbd ":") "eval")
+(define-key *root-map* (kbd "C-:") "eval")
+(define-key *top-map* (kbd "C-M-Right") "gnext")
+(define-key *top-map* (kbd "C-M-Left") "gprev")
+(define-key *root-map* (kbd "M-<") "gnext")
+(define-key *root-map* (kbd "M-~") "gprev")
+(define-key *top-map* (kbd "C-M-S-Right") "gnext-with-window")
+(define-key *top-map* (kbd "C-M-S-Left") "gprev-with-window")
+
+(defcommand conkeror () ()
+  (run-or-raise "conkeror" '(:class "Conkeror")))
+(defcommand terminal () ()
+  (run-or-raise "gnome-terminal" '(:title "Terminal")))
+(defcommand mail () ()
+  (run-or-raise "claws-mail" '(:class "Claws-Mail")))
+(defcommand zathura () ()
+  (run-or-raise "zathura" '(:class "Zathura")))
+(defcommand baseprograms () ()
+  (terminal)
+  (emacs)
+  (conkeror)
+  (mail))
+
+(define-key *root-map* (kbd "<") "terminal")
+(define-key *root-map* (kbd ">") "conkeror")
+(define-key *root-map* (kbd "~") "mail")
+(define-key *root-map* (kbd "aring") "zathura")
+(define-key *root-map* (kbd "C-<") "terminal")
+(define-key *root-map* (kbd "C->") "conkeror")
+(define-key *root-map* (kbd "C-~") "mail")
+(define-key *root-map* (kbd "C-aring") "zathura")
+(define-key *top-map* (kbd "s-9") "baseprograms")
+(define-key *top-map* (kbd "s-0") "pull-hidden-other")
+
+;; Groups
+;;; Create groups
+(gnew "Start")
+(gnew "Work")
+(gnew "Misc")
+(gnew "Mail")
+(gnew "Entertainment")
+(gnew "Graphics")
+(gnew "gimp")
+(run-commands "gselect Work")
+(run-commands "banish")
+
+(define-key *top-map* (kbd "s-h") "gselect Start")
+(define-key *top-map* (kbd "s-t") "gselect Work")
+(define-key *top-map* (kbd "s-n") "gselect Misc")
+(define-key *top-map* (kbd "s-s") "gselect Mail")
+(define-key *top-map* (kbd "s--") "gselect Entertainment")
+(define-key *top-map* (kbd "s-'") "gselect Graphics")
+(define-key *top-map* (kbd "s-\\") "gselect gimp")
+
+(defun is-running (program)
+  "Determine if program is running."
+  (string= (run-shell-command (concat "is-running " program) t) "1"))
+
+(defcommand exit () ()
+  (run-shell-command "pkill Xsession"))
+
+; layout handling
+;; courtesy of Peter Seibel
+(defmacro with-gensyms ((&rest names) &body body)
+  `(let ,(loop for n in names collect `(,n (gensym)))
+     ,@body))
+
+(defmacro program-with-layout (name &key (command (string-downcase (string name)))
+                               (props `'(:class ,(string-capitalize command))))
+  (with-gensyms (s w h files-path layout rules)
+    `(defcommand ,name () ()
+       (let* ((,s (current-screen))
+              (,w (prin1-to-string (screen-width ,s)))
+              (,h (prin1-to-string (screen-height ,s)))
+              (,files-path "/home/niels/.stumpwm.d/")
+              (,layout (concat ,files-path ,command "-layout-" ,w "x" ,h))
+              (,rules (concat ,files-path ,command "-rules")))
+         (gnew ,command)
+         (restore-from-file ,layout)
+         (restore-window-placement-rules ,rules)
+         (run-or-raise ,command ,props)
+         (place-existing-windows))))) ; needed if command was already run
+
+(program-with-layout gimp)
+;;;
+
+
+;; Window rules
+(clear-window-placement-rules)
+
+;; frame raise lock (lock AND raise == jumpto)
+(define-frame-preference "Start"
+  (0 nil t :title "stalonetray")
+)
+
+(define-frame-preference "Work"
+  (0 t   t :title "Terminal")
+  (0 t   t :class "Emacs")
+  (0 t   t :class "Conkeror")
+)
+
+(define-frame-preference "Misc"
+  (0 t   t :class "Transmission")
+)
+
+(define-frame-preference "Mail"
+  (0 t   t :title "Claws Mail")
+)
+
+(define-frame-preference "Entertainment"
+  (0 t   t :class "Exaile")
+)
+
+(define-frame-preference "Graphics"
+  (0 t   t :class "MyPaint")
+  (0 t   t :class "Inkscape")
+)
+
+(setf stumpwm:*mode-line-position* :bottom)
+
+; Run a terminal if no terminal is running
+(unless (is-running "gnome-terminal") (terminal))
+
+; Local Variables:
+; mode: lisp
+; mode: stumpwm
+; buffertitle: "Configuration of StumpWM"
+; End:

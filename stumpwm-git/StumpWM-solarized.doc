@@ -1,0 +1,35 @@
+;; Solarized theme
+(defun colour (key)
+  (let ((colours '(:base03 #x002b36
+                   :base02 #x073642
+                   :base01 #x586e75
+                   :base00 #x657b83
+                   :base0 #x839496
+                   :base1 #x93a1a1
+                   :base2 #xeee8d5
+                   :base3 #xfdf6e3
+                   :yellow #xb58900
+                   :orange #xcb4b16
+                   :red #xdc322f
+                   :magenta #xd33682
+                   :violet #x6c71c4
+                   :blue #x268bd2
+                   :cyan #x2aa198
+                   :green #x859900)))
+    (getf colours key)))
+
+;; Update colors
+(setf *bright-colors* nil
+      *colors* (mapcar #'colour '(:base02 :red :green :yellow :blue :magenta
+:cyan :base2 :base03 :orange))
+      *mode-line-background-color* (colour :base02)
+      *mode-line-foreground-color* (colour :base00)
+      *mode-line-border-color* (colour :base02))
+(mapcar #'update-color-map *screen-list*)
+
+;(set-font "-nil-profont-medium-r-normal--0-0-72-72-c-0-iso8859-1")
+(set-focus-color (colour :red))
+(set-unfocus-color (colour :base02))
+(set-border-color (colour :base02))
+(set-bg-color (colour :base03))
+(set-fg-color (colour :orange))

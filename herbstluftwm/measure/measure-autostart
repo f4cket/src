@@ -1,0 +1,85 @@
+#!/bin/bash
+
+export HLWM_PATH=~/.config/herbstluftwm
+#export FONT='-*-terminus-*-r-normal-*-12-*-*-*-*-*-iso8859-*'
+export FONT="-*-ohsnap.icons-medium-*-*-*-11-*-*-*-*-*-*-*"
+function hc() { herbstclient "$@"; }
+
+hc emit_hook reload
+
+# remove all existing keybindings
+hc keyunbind --all
+
+# general settings
+hc set focus_follows_mouse 1
+
+# exterior
+hc set frame_border_width 0
+hc set always_show_frame 0
+hc set window_gap 0
+hc set window_border_width 1
+hc set frame_bg_normal_color '#000000'
+hc set frame_bg_active_color '#222222'
+hc set window_border_normal_color '#333333'
+hc set window_border_active_color '#cc0000'
+hc pad 0 15
+
+# status
+exec $HLWM_PATH/hlwm_status &
+
+# run hooks
+hc emit_hook kill_hooks
+for hook in $HLWM_PATH/hooks/*; do
+		 exec $hook &
+		 done
+
+# keybindings
+Mod=Mod1
+hc keybind $Mod-Shift-q spawn $HLWM_PATH/quit
+hc keybind $Mod-Shift-r reload
+hc keybind $Mod-Shift-c close
+hc keybind $Mod-Shift-Return spawn urxvt
+hc keybind $Mod-p spawn dmenu_run \
+	 -i -fn "$FONT" -nb "#222222" -nf "#cccccc" -sb "#444444" -sf "#ffffff"
+
+# tags
+hc rename default 1 || true
+for i in {1..9}; do
+	    hc add "$i"
+				 hc keybind "$Mod-$i" use "$i"
+				 	 hc keybind "$Mod-Shift-$i" move "$i"
+					 done
+# dwm style alt-tab
+					 hc keybind $Mod-Tab spawn $HLWM_PATH/use_last_tag
+
+# layouting
+hc keybind $Mod-w remove
+hc keybind $Mod-space cycle_layout 2
+
+# resizing
+RESIZESTEP=0.05
+hc keybind $Mod-u resize left +$RESIZESTEP
+hc keybind $Mod-o resize right +$RESIZESTEP
+
+# focus
+hc keybind $Mod-h focus left
+hc keybind $Mod-j cycle 1
+hc keybind $Mod-k cycle -1
+hc keybind $Mod-l focus right
+hc keybind $Mod-Shift-h shift left
+hc keybind $Mod-Shift-j shift down
+hc keybind $Mod-Shift-k shift up
+hc keybind $Mod-Shift-l spawn $HLWM_PATH/shift_right
+
+# rules
+hc unrule -F
+#hc rule class=XTerm tag=3 # move all xterms to tag 3
+hc rule focus=off # normally do not focus new clients
+hc rule class~'(Firefox.*|Vimperator.*)' tag=2
+hc rule class~'(.*[Rr]xvt.*|.*[Tt]erm|Konsole)' focus=on
+hc rule windowtype~'_NET_WM_WINDOW_TYPE_(DIALOG|UTILITY|SPLASH)' pseudotile=on
+hc rule windowtype='_NET_WM_WINDOW_TYPE_DIALOG' focus=on
+hc rule windowtype~'_NET_WM_WINDOW_TYPE_(NOTIFICATION|DOCK)' manage=off
+
+# unlock, just to be sure
+hc unlock

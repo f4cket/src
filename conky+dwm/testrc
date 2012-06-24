@@ -1,0 +1,1 @@
+${color 668ABF}${font weight:bold:size=8}${time %A},${time %e} ${time %B} ${time %G}${alignr}${time %H:%M:%S}$font$color

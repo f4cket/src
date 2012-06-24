@@ -1,0 +1,69 @@
+background yes
+use_xft yes
+xftfont Bitstream Vera Sans Mono:size=12
+xftalpha 1
+uppercase no
+update_interval 1.0
+total_run_times 0
+own_window no
+double_buffer yes
+alignment tl
+minimum_size 1366 768
+gap_y 0
+draw_shades no
+draw_outline no
+draw_borders no
+draw_graph_borders yes
+default_color c9c9c9
+default_shade_color magenta
+default_outline_color black
+no_buffers yes
+cpu_avg_samples 2
+override_utf8_locale no
+if_up_strictness address
+override_utf8_locale
+
+# Colors 
+color1 ee7878   #shade of red
+color2 green
+color3 7878ee   #shade of blue
+color4 cyan
+color5 magenta
+color6 yellow
+
+##############################################
+#  Output
+##############################################
+TEXT
+
+${font Raleway:size=22}${color1}${goto 180}CPU${color2}${goto 640}RAM${color3}${goto 1120}DISK
+
+${font Bitstream Vera Sans Mono:size=12}${color1}${goto 50}Core 0 ${cpubar cpu0 10,250}${color2}${goto 520}RAM ${membar 10,250}${color3}${goto 970}ROOT ${fs_bar 10,250 /}
+${color1}${goto 50}        ${cpu cpu0}% (${freq_g cpu0} Ghz)${goto 320}${execi 10 /home/itwenty/bin/corezerotemp}${color2}${goto 520}     ${mem} / ${memmax}${color3}${goto 970}      ${fs_used /} / ${fs_size /}
+${color1}${goto 50}Core 1 ${cpubar cpu1 10,250}${color2}${goto 520}SWP ${swapbar 10,250}${color3}${goto 970}BOOT ${fs_bar 10,250 /boot}
+${color1}${goto 50}        ${cpu cpu1}% (${freq_g cpu1} Ghz)${color2}${goto 520}     ${swap} / ${swapmax}${color3}${goto 970}      ${fs_used /boot} / ${fs_size /boot}
+#${color1}${goto 50}Core 2 ${cpubar cpu2 10,250}${color3}${goto 970}WIN7 ${fs_bar 10,250 /mnt/windows}
+#${color1}${goto 50}        ${cpu cpu2}% (${freq_g cpu2} Ghz)${goto 320}${execi 10 /home/itwenty/bin/coretwotemp}${color3}${goto 970}      ${fs_used /mnt/windows} / ${fs_size /mnt/windows}
+${color1}${goto 50}Core 3 ${cpubar cpu3 10,250}
+${color1}${goto 50}        ${cpu cpu3}% (${freq_g cpu3} Ghz)
+
+${color1}${goto 170}MOST CPU${color2}${goto 630}MOST RAM${color3}${goto 1100}MOST I/O
+${color1}${goto 50}${top name 1}${goto 320}${top cpu 1}%${color2}${goto 520}${top_mem name 1}${goto 750}${top_mem mem 1}%${color3}${goto 970}${top_io name 1}${goto 1210}${top_io io_perc 1}%
+${color1}${goto 50}${top name 2}${goto 320}${top cpu 2}%${color2}${goto 520}${top_mem name 2}${goto 750}${top_mem mem 2}%${color3}${goto 970}${top_io name 2}${goto 1210}${top_io io_perc 2}%
+${color1}${goto 50}${top name 3}${goto 320}${top cpu 3}%${color2}${goto 520}${top_mem name 3}${goto 750}${top_mem mem 3}%${color3}${goto 970}${top_io name 3}${goto 1210}${top_io io_perc 3}%
+
+
+
+
+
+${font Raleway:size=22}${color4}${goto 180}NET${color6}${goto 1080}MUSIC
+${font Bitstream Vera Sans Mono:size=12}${color4}${goto 50}wlan0${color6}${goto 1085}${if_mpd_playing}${mpd_status}${else}Stopped${endif}
+${color4}${goto 50}IP   ${goto 250}${if_up wlan0}${addr wlan0}${else}Disconnected${endif}${image /tmp/Cover.jpg -p 520,400 -n}${color6}${goto 960} Track  ${if_mpd_playing}${scroll 22 11 $mpd_track}${else}${goto 1240}N.A.${endif}   
+${color4}${goto 50}IN   ${goto 250}${if_up wlan0}${downspeedf wlan0} (${totaldown wlan0})${else}N.A.${endif}${color6}${goto 960} Title  ${if_mpd_playing}${scroll 22 11 $mpd_title}${else}${goto 1240}N.A.${endif}
+${color4}${goto 50}OUT  ${goto 250}${if_up wlan0}${upspeedf wlan0} (${totalup wlan0})${else}N.A.${endif}${color6}${goto 960} Album  ${if_mpd_playing}${scroll 22 11 $mpd_album}${else}${goto 1240}N.A.${endif}
+${color4}${goto 50}ESSID${goto 250}${if_up wlan0}${wireless_essid wlan0} ${wireless_link_qual_perc wlan0}%${else}N.A.${endif}${color6}${goto 960} Artist ${if_mpd_playing}${scroll 22 11 $mpd_artist}${else}${goto 1240}N.A.${endif}
+${color6}${goto 960} Volume ${if_mpd_playing}${mpd_vol}${else}${goto 1240}N.A.${endif}
+${color4}${goto 50}eth0
+${color4}${goto 50}IP   ${goto 250}${if_up eth0}${addr eth0}${else}Disconnected${endif}
+${color4}${goto 50}IN   ${goto 250}${if_up eth0}${downspeedf eth0} (${totaldown eth0})${else}N.A.${endif}
+${color4}${goto 50}OUT  ${goto 250}${if_up eth0}${upspeedf eth0} (${totalup eth0})${else}N.A.${endif}${color6}${goto 960}${if_mpd_playing}${mpd_elapsed} ${mpd_bar 10,220} ${mpd_length}${endif}

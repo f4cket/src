@@ -1,0 +1,7 @@
+autoload -U compinit promptinit
+#ompinit
+#romptinit; prompt gentoo
+alias ll="ls -l |lolcat"
+alias ls="ls --color"
+alias l="ls -la --color"
+echo "King!"

@@ -1,0 +1,105 @@
+# kooothor@flood.fr tmux.conf
+# #################
+# screen-like setup
+# #################
+
+# C-a is escape sequence
+unbind C-b
+set -g prefix ^A
+bind a send-prefix
+
+#open man page with /
+bind / command-prompt "split-window -h 'exec man %%'"
+
+# new window ^C c 
+unbind ^C
+bind ^C new-window
+bind c new-window
+
+# detach ^D d
+unbind ^D
+bind ^D detach
+
+# displays * 
+unbind *
+bind * list-clients
+
+# lockscreen ^X x 
+unbind ^X
+bind ^X lock-server
+unbind x
+bind x lock-server
+
+# prev ^H ^P p ^? 
+unbind ^H
+bind ^H previous-window
+unbind ^P
+bind ^P previous-window
+unbind p
+bind p previous-window
+unbind BSpace
+bind BSpace previous-window
+
+# next ^@ ^N space n 
+unbind ^@
+bind ^@ next-window
+unbind ^N
+bind ^N next-window
+unbind " "
+bind " " next-window
+unbind n
+bind n next-window
+
+# title A
+unbind A
+bind A command-prompt "rename-window %%"
+
+# ^A to get to last window
+unbind ^A
+bind ^A last-window
+
+# windows ^W w 
+unbind ^W
+bind ^W list-windows
+unbind w
+bind w list-windows
+
+# " windowlist -b
+unbind '"'
+bind '"' choose-window
+
+# quit \ 
+#unbind \
+#bind \ confirm-before "kill-server"
+
+# kill K k 
+unbind K
+bind K confirm-before "kill-window"
+unbind k
+bind k confirm-before "kill-window"
+
+# redisplay ^L l 
+unbind ^L
+bind ^L refresh-client
+unbind l
+bind l refresh-client
+
+# split -v |
+unbind |
+bind | split-window
+unbind S
+bind S split-window -v
+
+# mouse-select-pane [on | off]
+# #   If on, tmux captures the mouse and when a window is
+# #   split into multiple panes the mouse may be used to
+# #   select the current pane.  The mouse click is also
+# #   passed through to the application as normal.
+# #
+set -g mouse-select-pane on
+
+#CPU MEM
+#https://github.com/thewtex/tmux-mem-cpu-load
+set -g status-interval 2
+set -g status-right "#(tmux-mem-cpu-load 2) #H"
+

@@ -1,0 +1,16 @@
+# Colors
+off="\[\e[0m\]" #Color off
+red="\[\e[0;91m\]" # Red
+cyn="\[\e[0;96m\]" # Cyan
+
+w=$(tput cols)
+pnt=$(for i in $(seq $w); do echo -n '-'; done)
+
+if [ `id -u` -ne "0" ]; then
+	CLR="${cyn}"
+	        SYM="$"
+		else
+			CLR="${red}"
+			        SYM="#"
+				fi
+				PS1="${pnt}\n${SYM} ${CLR}@${off}\h ${CLR}\@${off} \w\n${pnt}\n > "
